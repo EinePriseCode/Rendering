@@ -109,9 +109,9 @@ class Camera(Transform):
 
     def ray_color(self, ray):
         s = Sphere(Vector(0, 0, -2), 1, Vector(123, 12, 230))
-        t = s.hit_sphere(ray)
-        if t is not None:
-            n = (ray.get_position(t) - s.position).normalize()
+        result = s.hit_sphere(ray)
+        if result is not None:
+            pos, n, color = result
             return Vector(n.x + 1, n.y + 1, n.z + 1) * .5 * 255
 
         unit_dir = ray.direction.normalize()

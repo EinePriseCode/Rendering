@@ -12,7 +12,7 @@ class Sphere(Transform):
         self.radius = radius
         self.color = color
 
-    def hit_sphere(self, ray):
+    def hit_sphere(self, ray, t_min=1, t_max=100):
         pointer = ray.origin - self.position
 
         # less efficient
@@ -29,7 +29,22 @@ class Sphere(Transform):
         if discriminant < 0:
             return None
         else:
-            return (-half_b - np.sqrt(discriminant)) / a
+            sqrtd = np.sqrt(discriminant)
+            t = (-half_b - sqrtd) / a
 
+            # filter out t if out of range
+            if t < t_min or t > t_max:
+                t = (-half_b + sqrtd) / a
+                if t < t_min or t > t_max:
+                    return None
+
+            pos = ray.get_position(t)
+            return pos, (ray.get_position(t) - self.position).normalize(), self.color
+
+
+class Scene:
+    def __init__(self):
+        self.objects = []
+        self.cameras = []
 
 
