@@ -1,5 +1,6 @@
 import numpy as np
 
+from objects import Transform, Sphere
 from rendering import Image
 
 
@@ -66,6 +67,11 @@ class Vector:
     def backward():
         return Vector(0, 0, 1)
 
+    @staticmethod
+    def null():
+        return Vector(0, 0, 0)
+
+
 
 class Ray:
     def __init__(self, origin, direction):
@@ -73,11 +79,13 @@ class Ray:
         self.direction = direction
 
     def get_position(self, t):
-        return self.origin + t * self.direction
+        return self.origin + self.direction * t
 
 
-class Camera:
+class Camera(Transform):
     def __init__(self, focal_length, aspect_ratio, image_width):
+        super().__init__(Vector(0, 0, 0))
+
         self.focal_length = focal_length
         self.aspect_ratio = aspect_ratio
 
@@ -87,7 +95,6 @@ class Camera:
         self.viewport_height = 2.0
         self.viewport_width = self.viewport_height * self.aspect_ratio
 
-        self.position = Vector(0, 0, 0)
         self.direction = Vector.forward()
 
         self.horizontal = Vector.right() * self.viewport_width
@@ -101,6 +108,12 @@ class Camera:
                                                          + self.vertical * y / (self.image_height - 1) - self.position)
 
     def ray_color(self, ray):
+        s = Sphere(Vector(0, 0, -2), 1, Vector(123, 12, 230))
+        t = s.hit_sphere(ray)
+        if t is not None:
+            n = (ray.get_position(t) - s.position).normalize()
+            return Vector(n.x + 1, n.y + 1, n.z + 1) * .5 * 255
+
         unit_dir = ray.direction.normalize()
         t = .5 * (unit_dir.y + 1)
         return Vector(255, 255, 255) * (1-t) + Vector(np.floor(255 * .5), np.floor(255 * .7), 255) * t
@@ -118,4 +131,4 @@ class Camera:
 
 cam = Camera(1, 16/9, 300)
 img = cam.render()
-img.save_image("rendering2.ppm")
+img.save_image("rendering3.ppm")
