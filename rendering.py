@@ -14,7 +14,7 @@ class Image:
             f.write("P3\n")
             f.write(f"{self.width} {self.height} 255\n")
             # write pixels
-            for y in range(self.height):
+            for y in range(self.height)[::-1]:
                 for x in range(self.width):
                     f.write(f" {self.image_list[y, x, 0]} ")
                     f.write(f" {self.image_list[y, x, 1]} ")

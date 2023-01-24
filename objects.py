@@ -12,7 +12,7 @@ class Sphere(Transform):
         self.radius = radius
         self.color = color
 
-    def hit_sphere(self, ray, t_min=1, t_max=100):
+    def hit_sphere(self, ray, t_min=1, t_max=1000):
         pointer = ray.origin - self.position
 
         # less efficient
@@ -39,12 +39,5 @@ class Sphere(Transform):
                     return None
 
             pos = ray.get_position(t)
-            return pos, (ray.get_position(t) - self.position).normalize(), self.color
-
-
-class Scene:
-    def __init__(self):
-        self.objects = []
-        self.cameras = []
-
+            return t, pos, (ray.get_position(t) - self.position).normalize(), self.color
 

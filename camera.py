@@ -72,7 +72,6 @@ class Vector:
         return Vector(0, 0, 0)
 
 
-
 class Ray:
     def __init__(self, origin, direction):
         self.origin = origin
@@ -83,10 +82,13 @@ class Ray:
 
 
 class Camera(Transform):
-    def __init__(self, focal_length, aspect_ratio, image_width):
+    def __init__(self, focal_length, aspect_ratio, image_width, t_min=1, t_max=1000):
         super().__init__(Vector(0, 0, 0))
 
         self.focal_length = focal_length
+        self.t_min = t_min
+        self.t_max = t_max
+
         self.aspect_ratio = aspect_ratio
 
         self.image_width = image_width
@@ -107,28 +109,75 @@ class Camera(Transform):
         return Ray(self.position, self.lower_left_corner + self.horizontal * x / (self.image_width - 1)
                                                          + self.vertical * y / (self.image_height - 1) - self.position)
 
-    def ray_color(self, ray):
-        s = Sphere(Vector(0, 0, -2), 1, Vector(123, 12, 230))
-        result = s.hit_sphere(ray)
+    def ray_color(self, ray, objects):
+        result = None
+        for obj in objects:
+            result_obj = obj.hit_sphere(ray, self.t_min, self.t_max)
+            if result_obj is not None:
+                if result is None or result_obj[0] < result[0]:
+                    result = result_obj
+
         if result is not None:
-            pos, n, color = result
-            return Vector(n.x + 1, n.y + 1, n.z + 1) * .5 * 255
+            _, pos, n, color = result
+            # to show normal vector as color
+            # return Vector(n.x + 1, n.y + 1, n.z + 1) * .5 * 255
+            return color
 
         unit_dir = ray.direction.normalize()
         t = .5 * (unit_dir.y + 1)
         return Vector(255, 255, 255) * (1-t) + Vector(np.floor(255 * .5), np.floor(255 * .7), 255) * t
 
-    def render(self):
+    def render(self, objects):
         i = Image(self.image_width, self.image_height)
         # looping through pixels for rendering
-        for y in range(self.image_height):
+        for y in range(self.image_height)[::-1]:
             for x in range(self.image_width):
                 ray = self.get_ray(x, y)
-                i.image_list[y, x] = self.ray_color(ray).to_array()
+                i.image_list[y, x] = self.ray_color(ray, objects).to_array()
 
         return i
 
 
-cam = Camera(1, 16/9, 300)
-img = cam.render()
-img.save_image("rendering3.ppm")
+class Scene:
+    def __init__(self, name, path=""):
+        self.name = name
+        self.path = path
+        self.objects = []
+        self.cameras = []
+
+    def render(self):
+        for i in range(len(self.cameras)):
+            img = self.cameras[i].render(self.objects)
+            if i > 0:
+                img.save_image(f"{self.path}{self.name}-{i + 1}.ppm")
+            else:
+                img.save_image(f"{self.path}{self.name}.ppm")
+
+    def add_cam(self, cam):
+        self.cameras.append(cam)
+
+    def add_object(self, obj):
+        self.objects.append(obj)
+
+
+scene = Scene("rendering3")
+main_camera = Camera(1, 16/9, 1920)
+scene.add_cam(main_camera)
+
+s0 = Sphere(Vector(0, 0, -3), 1, Vector(123, 213, 132))
+s1 = Sphere(Vector(3, 2, -7), .5, Vector(0, 0, 255))
+s2 = Sphere(Vector(-1, 0, -10), 3, Vector(0, 0, 0))
+s3 = Sphere(Vector(-2, 1, -2), .2, Vector(255, 0, 0))
+s4 = Sphere(Vector(0, -1000, -800), 1000, Vector(0, 255, 0))
+
+scene.add_object(s0)
+scene.add_object(s1)
+scene.add_object(s2)
+scene.add_object(s3)
+scene.add_object(s4)
+
+scene.render()
+
+
+
+
