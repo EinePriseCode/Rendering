@@ -1,5 +1,8 @@
 import numpy as np
 
+from rendering import Image
+
+
 class Vector:
 
     def __init__(self, x, y, z):
@@ -35,8 +38,10 @@ class Vector:
     def __str__(self):
         return f"{self.x} {self.y} {self.z}"
 
-    # right handed coordinate system, x right, y left, z backwards
+    def to_array(self):
+        return [self.x, self.y, self.z]
 
+    # right handed coordinate system, x right, y left, z backwards
     @staticmethod
     def up():
         return Vector(0, 1, 0)
@@ -62,11 +67,6 @@ class Vector:
         return Vector(0, 0, 1)
 
 
-class Color(Vector):
-    def __init__(self, r, g, b):
-        super().__init__(r, g, b)
-
-
 class Ray:
     def __init__(self, origin, direction):
         self.origin = origin
@@ -82,27 +82,40 @@ class Camera:
         self.aspect_ratio = aspect_ratio
 
         self.image_width = image_width
-        self.image_height = self.image_width // self.aspect_ratio
+        self.image_height = int(self.image_width // self.aspect_ratio)
+
+        self.viewport_height = 2.0
+        self.viewport_width = self.viewport_height * self.aspect_ratio
 
         self.position = Vector(0, 0, 0)
         self.direction = Vector.forward()
 
-        self.position = Vector(0, 0, 0)
-        self.direction = Vector.forward()
-
-        self.horizontal = Vector.right()
-        self.vertical = Vector.up()
+        self.horizontal = Vector.right() * self.viewport_width
+        self.vertical = Vector.up() * self.viewport_height
 
         self.lower_left_corner = (self.position + self.direction * self.focal_length
-                                  - self.vertical/2 - self.horizontal*self.aspect_ratio/2)
+                                  - self.vertical/2 - self.horizontal/2)
 
     def get_ray(self, x, y):
-        return Ray(self.position, self.lower_left_corner + self.horizontal * x / self.image_width
-                                                         + self.vertical * y / self.image_height - self.position)
+        return Ray(self.position, self.lower_left_corner + self.horizontal * x / (self.image_width - 1)
+                                                         + self.vertical * y / (self.image_height - 1) - self.position)
 
     def ray_color(self, ray):
         unit_dir = ray.direction.normalize()
         t = .5 * (unit_dir.y + 1)
-        return (1-t) * Color(255, 255, 255) + t * Color(np.floor(55 * .5), np.floor(255 * .7), 255)
+        return Vector(255, 255, 255) * (1-t) + Vector(np.floor(255 * .5), np.floor(255 * .7), 255) * t
+
+    def render(self):
+        i = Image(self.image_width, self.image_height)
+        # looping through pixels for rendering
+        for y in range(self.image_height):
+            for x in range(self.image_width):
+                ray = self.get_ray(x, y)
+                i.image_list[y, x] = self.ray_color(ray).to_array()
+
+        return i
 
 
+cam = Camera(1, 16/9, 300)
+img = cam.render()
+img.save_image("rendering2.ppm")
