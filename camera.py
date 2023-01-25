@@ -26,6 +26,9 @@ class Vector:
     def __truediv__(self, l):
         return Vector(self.x * 1/l, self.y * 1/l, self.z * 1/l)
 
+    def __floordiv__(self, l):
+        return Vector(self.x * 1 // l, self.y * 1 // l, self.z * 1 // l)
+
     def length(self):
         return np.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
 
@@ -39,8 +42,9 @@ class Vector:
     def __str__(self):
         return f"{self.x} {self.y} {self.z}"
 
-    def to_array(self):
-        return [self.x, self.y, self.z]
+    def to_int_array(self):
+        # WARNING: casts to int
+        return [int(self.x), int(self.y), int(self.z)]
 
     # right handed coordinate system, x right, y left, z backwards
     @staticmethod
@@ -82,10 +86,11 @@ class Ray:
 
 
 class Camera(Transform):
-    def __init__(self, focal_length, aspect_ratio, image_width, t_min=1, t_max=1000):
+    def __init__(self, focal_length, aspect_ratio, image_width, samples_per_pixel=1, t_min=1, t_max=1000):
         super().__init__(Vector(0, 0, 0))
 
         self.focal_length = focal_length
+        self.samples_per_pixel = samples_per_pixel
         self.t_min = t_min
         self.t_max = t_max
 
@@ -132,10 +137,18 @@ class Camera(Transform):
         # looping through pixels for rendering
         for y in range(self.image_height)[::-1]:
             for x in range(self.image_width):
-                ray = self.get_ray(x, y)
-                i.image_list[y, x] = self.ray_color(ray, objects).to_array()
+                pixel_color = Vector(0, 0, 0)
+                for i in range(self.samples_per_pixel):
+                    ray = self.get_ray(x, y)
+                    pixel_color = pixel_color + self.ray_color(ray, objects)
+                i.image_list[y, x] = self.average_color(pixel_color).to_int_array()
 
         return i
+
+    def average_color(self, pixel_color):
+        # doesnt have to be clamped because no single summed up color value is bigger then 255
+        # floor division to avoid float colors
+        return pixel_color // self.samples_per_pixel
 
 
 class Scene:
