@@ -43,7 +43,8 @@ class Sphere(Transform):
 
             pos = ray.get_position(t)
             norm = (ray.get_position(t) - self.position).normalize()
-            return t, pos, -norm if norm * ray.direction < 0 else norm, self.color
+            # <= because norm should point out if norm and ray are orthogonal
+            return t, pos, norm if norm * ray.direction <= 0 else norm * -1, self.color
 
 
 class Camera(Transform):
