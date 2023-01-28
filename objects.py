@@ -3,6 +3,7 @@ import sys
 import numpy as np
 
 from geometries import Ray, Vector
+from materials import DiffuseMaterial
 from rendering import Image
 
 
@@ -11,9 +12,18 @@ class Transform:
         self.position = position
 
 
-class Sphere(Transform):
-    def __init__(self, position, radius, color):
+class RenderObject(Transform):
+    def __init__(self, position, material):
         super().__init__(position)
+        self.material = material
+
+    def hit(self, ray, t_min, t_max):
+        raise NotImplementedError("Please Implement this method")
+
+
+class Sphere(RenderObject):
+    def __init__(self, position, radius, color, material):
+        super().__init__(position, material)
         self.radius = radius
         self.color = color
 
@@ -46,7 +56,7 @@ class Sphere(Transform):
             pos = ray.get_position(t)
             norm = (ray.get_position(t) - self.position).normalize()
             # <= because norm should point out if norm and ray are orthogonal
-            return t, pos, norm if norm * ray.direction <= 0 else norm * -1, self.color
+            return t, pos, norm if norm * ray.direction <= 0 else norm * -1, self.color, self.material
 
 
 class Camera(Transform):
@@ -93,15 +103,20 @@ class Camera(Transform):
 
         result = scene.hit(ray, self.t_min, self.t_max)
         if result is not None:
-            _, pos, norm, color = result
+            _, pos, norm, color, material = result
             # to show normal vector as color
-            # return Vector(norm.x + 1, norm.y + 1, norm.z + 1) * .5 * 255
-            # to show plain object color
-            # return color
-            target = pos + norm + Vector.rand_in_unit_sphere()
+            # return Vector(norm.x + 1, norm.y + 1, norm.z + 1) * .5
+            # target = pos + norm + Vector.rand_in_unit_sphere()
             # with older diffuse formulation
             # target = pos + Vector.rand_in_hemisphere(norm)
-            return self.ray_color(Ray(pos, target-pos), scene, depth-1) * .5
+            # return self.ray_color(Ray(pos, target-pos), scene, depth-1) * .5
+            if material is not None:
+                scattered_ray, attenuation = material.scatter(ray, pos, norm, color)
+                r_c = self.ray_color(scattered_ray, scene, depth - 1)
+                return Vector(r_c.x * attenuation.x, r_c.y * attenuation.y, r_c.z * attenuation.z)
+            else:
+                # to show plain object color
+                return color
 
         unit_dir = ray.direction.normalize()
         t = .5 * (unit_dir.y + 1)
@@ -117,7 +132,7 @@ class Camera(Transform):
                     ray = self.get_ray(x, y, self.samples_per_pixel > 1)
                     pixel_color = pixel_color + self.ray_color(ray, scene, self.max_bounce_depth)
                 i.image_list[y, x] = self.write_color(pixel_color).to_int_array()
-
+            print(f"\r{1-y/self.image_height}%")
         return i
 
     def write_color(self, pixel_color):
@@ -139,6 +154,7 @@ class Scene:
                 img.save_image(f"{self.path}{self.name}-{i + 1}.ppm")
             else:
                 img.save_image(f"{self.path}{self.name}.ppm")
+            print(f"Rendered {i+1} camera!")
 
     def add_cam(self, cam):
         self.cameras.append(cam)
@@ -156,21 +172,21 @@ class Scene:
         return result
 
 
-scene = Scene("rendering6")
-main_camera = Camera(1, 16 / 9, 400)
-cam2 = Camera(1, 16 / 9, 1920, samples_per_pixel=2)
-cam3 = Camera(1, 16 / 9, 1920, samples_per_pixel=4)
-cam4 = Camera(1, 16 / 9, 100, samples_per_pixel=8)
-cam5 = Camera(1, 16 / 9, 100, samples_per_pixel=16)
+scene = Scene("rendering7")
+main_camera = Camera(1, 16 / 9, 1920, samples_per_pixel=4, max_bounce_depth=100)
+cam2 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=2)
+cam3 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=4)
+cam4 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=8)
+cam5 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=16)
 
-# scene.add_cam(main_camera)
+scene.add_cam(main_camera)
 # scene.add_cam(cam2)
-scene.add_cam(cam3)
+# scene.add_cam(cam3)
 # scene.add_cam(cam4)
 # scene.add_cam(cam5)
 
-s0 = Sphere(Vector(0, 0, -3), 1, Vector(.5, .82, .52))
-s1 = Sphere(Vector(0, -51, -3), 50, Vector(0, 0, 1))
+s0 = Sphere(Vector(0, 0, -3), 1, Vector(1, 0, 0), DiffuseMaterial(Vector(99/255, 132/255, 117/255)))
+s1 = Sphere(Vector(0, -51, -3), 50, Vector(0, 0, 1), DiffuseMaterial(Vector(218/255, 247/255, 220/255)))
 # s2 = Sphere(Vector(-1, 0, -10), 3, Vector(0, 0, 0))
 # s3 = Sphere(Vector(-2, 1, -2), .2, Vector(1, 0, 0))
 # s4 = Sphere(Vector(0, -1, -2), 1, Vector(0, 1, 0))

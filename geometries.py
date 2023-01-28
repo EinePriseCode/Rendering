@@ -43,6 +43,13 @@ class Vector:
         # rounded for more correct colors (but cast to int to \void floats in ppm file)
         return [int(np.around(self.x)), int(np.around(self.y)), int(np.around(self.z))]
 
+    def near_zero(self):
+        s = 1e-8
+        return self.x < s and self.y < s and self.z < s
+
+    def reflect(self, norm):
+        return self - norm * (self * norm) * 2
+
     # right-handed coordinate system, x right, y left, z backwards
     @staticmethod
     def up():
@@ -87,7 +94,6 @@ class Vector:
             return in_unit_sphere
         else:
             return in_unit_sphere * -1
-
 
     @staticmethod
     def rand(low, high):
