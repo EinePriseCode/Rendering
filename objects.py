@@ -51,7 +51,7 @@ class Sphere(Transform):
 
 class Camera(Transform):
     def __init__(self, focal_length, aspect_ratio, image_width, samples_per_pixel=1,
-                 t_min=sys.float_info.epsilon, t_max=float("inf"), max_bounce_depth=50):
+                 t_min=.001, t_max=float("inf"), max_bounce_depth=50):
         super().__init__(Vector(0, 0, 0))
 
         self.focal_length = focal_length
@@ -87,24 +87,25 @@ class Camera(Transform):
                    + self.vertical * (y + rand_offset_y) / (self.image_height - 1) - self.position)
 
     def ray_color(self, ray, scene, depth):
-        result = scene.hit(ray, self.t_min, self.t_max)
-
         # no more light gathered if max bounce depth is exceeded
         if depth <= 0:
             return Vector(0, 0, 0)
 
+        result = scene.hit(ray, self.t_min, self.t_max)
         if result is not None:
             _, pos, norm, color = result
             # to show normal vector as color
             # return Vector(norm.x + 1, norm.y + 1, norm.z + 1) * .5 * 255
             # to show plain object color
             # return color
-            target = pos + norm + Vector.rand_unit()
+            target = pos + norm + Vector.rand_in_unit_sphere()
+            # with older diffuse formulation
+            # target = pos + Vector.rand_in_hemisphere(norm)
             return self.ray_color(Ray(pos, target-pos), scene, depth-1) * .5
 
         unit_dir = ray.direction.normalize()
         t = .5 * (unit_dir.y + 1)
-        return Vector(255, 255, 255) * (1-t) + Vector(np.floor(255 * .5), np.floor(255 * .7), 255) * t
+        return Vector(1, 1, 1) * (1-t) + Vector(.5, .7, 1) * t
 
     def render(self, scene):
         i = Image(self.image_width, self.image_height)
@@ -120,9 +121,8 @@ class Camera(Transform):
         return i
 
     def write_color(self, pixel_color):
-        # doesn't have to be clamped because no single summed up color value is bigger then 255
-        # floor division to avoid float colors
-        return Vector.gamma2_corrected(pixel_color // self.samples_per_pixel) * 255
+        # doesn't have to be clamped because no single summed up color value is bigger then 1
+        return Vector.gamma2_corrected(pixel_color / self.samples_per_pixel) * 255
 
 
 class Scene:
@@ -156,10 +156,10 @@ class Scene:
         return result
 
 
-scene = Scene("rendering5")
+scene = Scene("rendering6")
 main_camera = Camera(1, 16 / 9, 400)
-cam2 = Camera(1, 16 / 9, 100, samples_per_pixel=2)
-cam3 = Camera(1, 16 / 9, 1000, samples_per_pixel=4)
+cam2 = Camera(1, 16 / 9, 1920, samples_per_pixel=2)
+cam3 = Camera(1, 16 / 9, 1920, samples_per_pixel=4)
 cam4 = Camera(1, 16 / 9, 100, samples_per_pixel=8)
 cam5 = Camera(1, 16 / 9, 100, samples_per_pixel=16)
 
@@ -169,11 +169,11 @@ scene.add_cam(cam3)
 # scene.add_cam(cam4)
 # scene.add_cam(cam5)
 
-s0 = Sphere(Vector(0, 0, -3), 1, Vector(123, 213, 132))
-s1 = Sphere(Vector(0, -50, -3), 25, Vector(0, 0, 255))
+s0 = Sphere(Vector(0, 0, -3), 1, Vector(.5, .82, .52))
+s1 = Sphere(Vector(0, -51, -3), 50, Vector(0, 0, 1))
 # s2 = Sphere(Vector(-1, 0, -10), 3, Vector(0, 0, 0))
-# s3 = Sphere(Vector(-2, 1, -2), .2, Vector(255, 0, 0))
-# s4 = Sphere(Vector(0, -1, -2), 1, Vector(0, 255, 0))
+# s3 = Sphere(Vector(-2, 1, -2), .2, Vector(1, 0, 0))
+# s4 = Sphere(Vector(0, -1, -2), 1, Vector(0, 1, 0))
 
 scene.add_object(s0)
 scene.add_object(s1)

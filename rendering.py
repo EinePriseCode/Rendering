@@ -1,4 +1,6 @@
 import numpy as np
+
+
 class Image:
 
     def __init__(self, width, height):

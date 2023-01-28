@@ -40,8 +40,8 @@ class Vector:
         return f"{self.x} {self.y} {self.z}"
 
     def to_int_array(self):
-        # WARNING: casts to int
-        return [int(self.x), int(self.y), int(self.z)]
+        # rounded for more correct colors (but cast to int to \void floats in ppm file)
+        return [int(np.around(self.x)), int(np.around(self.y)), int(np.around(self.z))]
 
     # right-handed coordinate system, x right, y left, z backwards
     @staticmethod
@@ -73,12 +73,21 @@ class Vector:
         return Vector(0, 0, 0)
 
     @staticmethod
-    def rand_unit():
+    def rand_in_unit_sphere():
         while True:
             v = Vector.rand(-1, 1)
             if v.length() >= 1:
                 continue
             return v.normalize()
+
+    @staticmethod
+    def rand_in_hemisphere(norm):
+        in_unit_sphere = Vector.rand_in_unit_sphere()
+        if in_unit_sphere * norm > 0:
+            return in_unit_sphere
+        else:
+            return in_unit_sphere * -1
+
 
     @staticmethod
     def rand(low, high):
