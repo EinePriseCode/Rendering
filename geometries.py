@@ -72,6 +72,25 @@ class Vector:
     def null():
         return Vector(0, 0, 0)
 
+    @staticmethod
+    def rand_unit():
+        while True:
+            v = Vector.rand(-1, 1)
+            if v.length() >= 1:
+                continue
+            return v.normalize()
+
+    @staticmethod
+    def rand(low, high):
+        return Vector(np.random.uniform(low, high),
+                      np.random.uniform(low, high),
+                      np.random.uniform(low, high))
+
+    @staticmethod
+    def gamma2_corrected(v):
+        # element-wise square root
+        return Vector(np.sqrt(v.x), np.sqrt(v.y), np.sqrt(v.z))
+
 
 class Ray:
     def __init__(self, origin, direction):
