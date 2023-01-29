@@ -6,26 +6,35 @@ from rendering import Image
 
 
 class Transform:
+    # base class for objects in scene
     def __init__(self, position):
+        # position in scene
         self.position = position
 
 
 class RenderObject(Transform):
+    # superclass for all objects which can be rendered by a camera (inherits from Transform)
     def __init__(self, position, material):
         super().__init__(position)
+        # add material to an object
         self.material = material
 
     def hit(self, ray, t_min, t_max):
+        # RenderObjects can be hit by camera/render ray (abstract method)
+        # returns tuple of (ray parameter t, intersection position, normal of surface in point,
+        # color and material of object)
         raise NotImplementedError("Please Implement this method")
 
 
 class Sphere(RenderObject):
     def __init__(self, position, radius, color, material):
         super().__init__(position, material)
+        # adds a radius (and a color) to a RenderObject
         self.radius = radius
         self.color = color
 
     def hit(self, ray, t_min, t_max):
+        # implements hit method for spheres
         pointer = ray.origin - self.position
 
         # less efficient
@@ -33,6 +42,7 @@ class Sphere(RenderObject):
         # b = (pointer * ray.direction) * 2
         # c = pointer * pointer - self.radius ** 2
 
+        # solving system of linear equations from vector based intersection
         a = ray.direction * ray.direction
         half_b = (pointer * ray.direction)
         c = pointer * pointer - self.radius ** 2
@@ -43,6 +53,7 @@ class Sphere(RenderObject):
             return None
         else:
             sqrtd = np.sqrt(discriminant)
+            # calculating ray parameter t
             t = (-half_b - sqrtd) / a
 
             # filter out t if out of range
@@ -51,6 +62,7 @@ class Sphere(RenderObject):
                 if t < t_min or t > t_max:
                     return None
 
+            # getting intersection point and normal in this point
             pos = ray.get_position(t)
             norm = (ray.get_position(t) - self.position).normalize()
             # <= because norm should point out if norm and ray are orthogonal
@@ -60,7 +72,7 @@ class Sphere(RenderObject):
 class Camera(Transform):
     def __init__(self, focal_length, aspect_ratio, image_width, samples_per_pixel=1,
                  t_min=.001, t_max=float("inf"), max_bounce_depth=50):
-        super().__init__(Vector(0, 0, 0))
+        super().__init__(Vector.null())
 
         self.focal_length = focal_length
         self.samples_per_pixel = samples_per_pixel
@@ -97,7 +109,7 @@ class Camera(Transform):
     def ray_color(self, ray, scene, depth):
         # no more light gathered if max bounce depth is exceeded
         if depth <= 0:
-            return Vector(0, 0, 0)
+            return Vector.null()
 
         result = scene.hit(ray, self.t_min, self.t_max)
         if result is not None:
@@ -115,7 +127,7 @@ class Camera(Transform):
                     r_c = self.ray_color(scattered_ray, scene, depth - 1)
                     return Vector(r_c.x * attenuation.x, r_c.y * attenuation.y, r_c.z * attenuation.z)
                 else:
-                    return Vector(0, 0, 0)
+                    return Vector.null()
             else:
                 # to show plain object color
                 return color
@@ -129,7 +141,7 @@ class Camera(Transform):
         # looping through pixels for rendering
         for y in range(self.image_height)[::-1]:
             for x in range(self.image_width):
-                pixel_color = Vector(0, 0, 0)
+                pixel_color = Vector.null()
                 for s in range(self.samples_per_pixel):
                     ray = self.get_ray(x, y, self.samples_per_pixel > 1)
                     pixel_color = pixel_color + self.ray_color(ray, scene, self.max_bounce_depth)
@@ -143,15 +155,21 @@ class Camera(Transform):
 
 
 class Scene:
+    # a scene represents an environment by carrying cameras and render_objects
     def __init__(self, name, path=""):
         self.name = name
         self.path = path
-        self.objects = []
+
+        # lists of objects for rendering
+        self.render_objects = []
         self.cameras = []
 
     def render(self):
+        # rendering of scene is calling render method of all cameras
         for i in range(len(self.cameras)):
+            # rendering image
             img = self.cameras[i].render(self)
+            # saving image
             if i > 0:
                 img.save_image(f"{self.path}{self.name}-{i + 1}.ppm")
             else:
@@ -159,23 +177,32 @@ class Scene:
             print(f"Rendered {i+1} camera!")
 
     def add_cam(self, cam):
+        # adds a Camera to scene
         self.cameras.append(cam)
 
-    def add_object(self, obj):
-        self.objects.append(obj)
+    def add_render_object(self, obj):
+        # adds RenderObject to scene
+        self.render_objects.append(obj)
 
     def hit(self, ray, t_min, t_max):
+        # returns information about a hit/intersection of a ray with a render object
+        # (scene checks instead of camera to enable more use cases)
         result = None
-        for obj in self.objects:
+        # checks for hit for all render objects
+        for obj in self.render_objects:
             result_obj = obj.hit(ray, t_min, t_max)
+
+            # returns a result only if it was a hit and if hit object is closer to camera than others
             if result_obj is not None:
                 if result is None or result_obj[0] < result[0]:
                     result = result_obj
         return result
 
 
-scene = Scene("rendering7")
-main_camera = Camera(1, 16 / 9, 400, samples_per_pixel=100, max_bounce_depth=50)
+# Engine part: Building scene/environment  for rendering (camera, spheres, etc.)
+scene = Scene("rendering8")
+# cameras
+main_camera = Camera(1, 16 / 9, 100, samples_per_pixel=16, max_bounce_depth=16)
 cam2 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=2)
 cam3 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=4)
 cam4 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=8)
@@ -187,6 +214,7 @@ scene.add_cam(main_camera)
 # scene.add_cam(cam4)
 # scene.add_cam(cam5)
 
+# spheres
 s0 = Sphere(Vector(0, 0, -2), 1, Vector(1, 0, 0), SpecularMaterial(Vector(255 / 255, 215 / 255, 0 / 255), 0))
 s1 = Sphere(Vector(-1.8, -.2, -2), .8, Vector(1, 0, 0), SpecularMaterial(Vector(216 / 255, 216 / 255, 216 / 255), .3))
 s2 = Sphere(Vector(0, -101, -2), 100, Vector(0, 0, 1), DiffuseMaterial(Vector(105/255, 105/255, 105/255)))
@@ -194,12 +222,13 @@ s2 = Sphere(Vector(0, -101, -2), 100, Vector(0, 0, 1), DiffuseMaterial(Vector(10
 # s3 = Sphere(Vector(-2, 1, -2), .2, Vector(1, 0, 0))
 # s4 = Sphere(Vector(0, -1, -2), 1, Vector(0, 1, 0))
 
-scene.add_object(s0)
-scene.add_object(s1)
-scene.add_object(s2)
+scene.add_render_object(s0)
+scene.add_render_object(s1)
+scene.add_render_object(s2)
 # scene.add_object(s3)
 # scene.add_object(s4)
 
+# start rendering
 scene.render()
 
 
