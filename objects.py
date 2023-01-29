@@ -1,9 +1,7 @@
-import sys
-
 import numpy as np
 
 from geometries import Ray, Vector
-from materials import DiffuseMaterial
+from materials import DiffuseMaterial, SpecularMaterial
 from rendering import Image
 
 
@@ -132,7 +130,7 @@ class Camera(Transform):
                     ray = self.get_ray(x, y, self.samples_per_pixel > 1)
                     pixel_color = pixel_color + self.ray_color(ray, scene, self.max_bounce_depth)
                 i.image_list[y, x] = self.write_color(pixel_color).to_int_array()
-            print(f"\r{1-y/self.image_height}%")
+            print(f"\r{1-y/self.image_height*100:.2f}%")
         return i
 
     def write_color(self, pixel_color):
@@ -173,7 +171,7 @@ class Scene:
 
 
 scene = Scene("rendering7")
-main_camera = Camera(1, 16 / 9, 1920, samples_per_pixel=4, max_bounce_depth=100)
+main_camera = Camera(1, 16 / 9, 1000, samples_per_pixel=4, max_bounce_depth=50)
 cam2 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=2)
 cam3 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=4)
 cam4 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=8)
@@ -185,8 +183,8 @@ scene.add_cam(main_camera)
 # scene.add_cam(cam4)
 # scene.add_cam(cam5)
 
-s0 = Sphere(Vector(0, 0, -3), 1, Vector(1, 0, 0), DiffuseMaterial(Vector(99/255, 132/255, 117/255)))
-s1 = Sphere(Vector(0, -51, -3), 50, Vector(0, 0, 1), DiffuseMaterial(Vector(218/255, 247/255, 220/255)))
+s0 = Sphere(Vector(0, 0, -3), 1, Vector(1, 0, 0), SpecularMaterial(Vector(255 / 255, 215 / 255, 0 / 255)))
+s1 = Sphere(Vector(0, -51, -3), 50, Vector(0, 0, 1), DiffuseMaterial(Vector(216/255, 216/255, 216/255)))
 # s2 = Sphere(Vector(-1, 0, -10), 3, Vector(0, 0, 0))
 # s3 = Sphere(Vector(-2, 1, -2), .2, Vector(1, 0, 0))
 # s4 = Sphere(Vector(0, -1, -2), 1, Vector(0, 1, 0))
