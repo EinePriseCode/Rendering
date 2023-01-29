@@ -109,9 +109,13 @@ class Camera(Transform):
             # target = pos + Vector.rand_in_hemisphere(norm)
             # return self.ray_color(Ray(pos, target-pos), scene, depth-1) * .5
             if material is not None:
-                scattered_ray, attenuation = material.scatter(ray, pos, norm, color)
-                r_c = self.ray_color(scattered_ray, scene, depth - 1)
-                return Vector(r_c.x * attenuation.x, r_c.y * attenuation.y, r_c.z * attenuation.z)
+                scatter_result = material.scatter(ray, pos, norm, color)
+                if scatter_result is not None:
+                    scattered_ray, attenuation = scatter_result
+                    r_c = self.ray_color(scattered_ray, scene, depth - 1)
+                    return Vector(r_c.x * attenuation.x, r_c.y * attenuation.y, r_c.z * attenuation.z)
+                else:
+                    return Vector(0, 0, 0)
             else:
                 # to show plain object color
                 return color
@@ -130,7 +134,7 @@ class Camera(Transform):
                     ray = self.get_ray(x, y, self.samples_per_pixel > 1)
                     pixel_color = pixel_color + self.ray_color(ray, scene, self.max_bounce_depth)
                 i.image_list[y, x] = self.write_color(pixel_color).to_int_array()
-            print(f"\r{1-y/self.image_height*100:.2f}%")
+            print(f"\r{(1-y/self.image_height)*100:.2f}%")
         return i
 
     def write_color(self, pixel_color):
@@ -171,7 +175,7 @@ class Scene:
 
 
 scene = Scene("rendering7")
-main_camera = Camera(1, 16 / 9, 1000, samples_per_pixel=4, max_bounce_depth=50)
+main_camera = Camera(1, 16 / 9, 400, samples_per_pixel=100, max_bounce_depth=50)
 cam2 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=2)
 cam3 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=4)
 cam4 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=8)
@@ -183,15 +187,16 @@ scene.add_cam(main_camera)
 # scene.add_cam(cam4)
 # scene.add_cam(cam5)
 
-s0 = Sphere(Vector(0, 0, -3), 1, Vector(1, 0, 0), SpecularMaterial(Vector(255 / 255, 215 / 255, 0 / 255)))
-s1 = Sphere(Vector(0, -51, -3), 50, Vector(0, 0, 1), DiffuseMaterial(Vector(216/255, 216/255, 216/255)))
+s0 = Sphere(Vector(0, 0, -2), 1, Vector(1, 0, 0), SpecularMaterial(Vector(255 / 255, 215 / 255, 0 / 255), 0))
+s1 = Sphere(Vector(-1.8, -.2, -2), .8, Vector(1, 0, 0), SpecularMaterial(Vector(216 / 255, 216 / 255, 216 / 255), .3))
+s2 = Sphere(Vector(0, -101, -2), 100, Vector(0, 0, 1), DiffuseMaterial(Vector(105/255, 105/255, 105/255)))
 # s2 = Sphere(Vector(-1, 0, -10), 3, Vector(0, 0, 0))
 # s3 = Sphere(Vector(-2, 1, -2), .2, Vector(1, 0, 0))
 # s4 = Sphere(Vector(0, -1, -2), 1, Vector(0, 1, 0))
 
 scene.add_object(s0)
 scene.add_object(s1)
-# scene.add_object(s2)
+scene.add_object(s2)
 # scene.add_object(s3)
 # scene.add_object(s4)
 

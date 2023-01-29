@@ -18,7 +18,15 @@ class DiffuseMaterial(Material):
 
 
 class SpecularMaterial(Material):
+
+    def __init__(self, albedo, fuzz):
+        super().__init__(albedo)
+        # < or <= makes no big difference (fuzz-vector length is smaller than 1 at all)
+        self.fuzz = fuzz if fuzz <= 1 else 1
+
     def scatter(self, ray, pos, norm, color):
         reflect_dir = ray.direction.normalize().reflect(norm)
-        # no direction calculation necessary because ray and normal are always in opposite directions
-        return Ray(pos, reflect_dir), self.albedo
+        scattered_dir = reflect_dir + (Vector.rand_in_unit_sphere() * self.fuzz)
+        if scattered_dir * norm > 0:
+            return Ray(pos, scattered_dir), self.albedo
+        return None
