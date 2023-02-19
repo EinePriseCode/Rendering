@@ -1,8 +1,11 @@
+import sys
+
 import numpy as np
 
 from geometries import Ray, Vector
-from materials import DiffuseMaterial, SpecularMaterial
 from rendering import Image
+
+sys.setrecursionlimit(1500)
 
 
 class Transform:
@@ -27,7 +30,7 @@ class RenderObject(Transform):
 
 
 class Sphere(RenderObject):
-    def __init__(self, position, radius, color, material):
+    def __init__(self, position, radius, color=Vector.null(), material=None):
         super().__init__(position, material)
         # adds a radius (and a color) to a RenderObject
         self.radius = radius
@@ -64,16 +67,22 @@ class Sphere(RenderObject):
 
             # getting intersection point and normal in this point
             pos = ray.get_position(t)
-            norm = (ray.get_position(t) - self.position).normalize()
+            norm = (ray.get_position(t) - self.position) / self.radius
             # <= because norm should point out if norm and ray are orthogonal
-            return t, pos, norm if norm * ray.direction <= 0 else norm * -1, self.color, self.material
+            front_face = norm * ray.direction <= 0
+            return t, pos, norm if front_face else norm * -1, front_face, self.color, self.material
 
 
 class Camera(Transform):
-    def __init__(self, focal_length, aspect_ratio, image_width, samples_per_pixel=1,
-                 t_min=.001, t_max=float("inf"), max_bounce_depth=50):
-        super().__init__(Vector.null())
+    def __init__(self, aspect_ratio, image_width, focal_length, fov=130,
+                 lookfrom=Vector(0, 0, 0), lookat=Vector(0, 0, -1), vup=Vector(0, 1, 0),
+                 samples_per_pixel=1, t_min=.001, t_max=float("inf"), max_bounce_depth=50,
+                 background_gradient=(Vector(1, 1, 1), Vector(.5, .7, 1)), aperture=0.0):
+        super().__init__(lookfrom)
 
+        self.background_gradient = background_gradient
+
+        self.fov = fov
         self.focal_length = focal_length
         self.samples_per_pixel = samples_per_pixel
         self.t_min = t_min
@@ -85,26 +94,39 @@ class Camera(Transform):
         self.image_width = image_width
         self.image_height = int(self.image_width // self.aspect_ratio)
 
-        self.viewport_height = 2.0
-        self.viewport_width = self.viewport_height * self.aspect_ratio
+        # width depends on fov and focal length
+        self.viewport_width = 2 * np.tan(np.radians(self.fov)/2) * self.focal_length
+        self.viewport_height = self.viewport_width * 1/self.aspect_ratio
 
-        self.direction = Vector.forward()
+        # calculate orthonormal basis of camera coordinate system
+        w = (lookfrom - lookat).normalize()
+        self.u = vup.cross(w).normalize()
+        self.v = w.cross(self.u)
 
-        self.horizontal = Vector.right() * self.viewport_width
-        self.vertical = Vector.up() * self.viewport_height
+        self.direction = w * -1
+
+        self.horizontal = self.u * self.viewport_width
+        self.vertical = self.v * self.viewport_height
+
+        self.lens_radius = aperture / 2
 
         self.lower_left_corner = (self.position + self.direction * self.focal_length
                                   - self.vertical/2 - self.horizontal/2)
 
     def get_ray(self, x, y, antialiasing):
+        # antialiasing offset
         rand_offset_x, rand_offset_y = 0, 0
+        # depth of field offset (lens)
+        lens_offset = Vector.rand_in_unit_disc() * self.lens_radius
+        position_offset = self.u * lens_offset.x + self.v * lens_offset.y
+
         if antialiasing:
-            # why only one direction noise
             rand_offset_x = np.random.uniform(0, 1)
             rand_offset_y = np.random.uniform(0, 1)
-        return Ray(self.position, self.lower_left_corner
+
+        return Ray(self.position + position_offset, self.lower_left_corner
                    + self.horizontal * (x + rand_offset_x) / (self.image_width - 1)
-                   + self.vertical * (y + rand_offset_y) / (self.image_height - 1) - self.position)
+                   + self.vertical * (y + rand_offset_y) / (self.image_height - 1) - self.position - position_offset)
 
     def ray_color(self, ray, scene, depth):
         # no more light gathered if max bounce depth is exceeded
@@ -113,7 +135,7 @@ class Camera(Transform):
 
         result = scene.hit(ray, self.t_min, self.t_max)
         if result is not None:
-            _, pos, norm, color, material = result
+            _, pos, norm, front_face, color, material = result
             # to show normal vector as color
             # return Vector(norm.x + 1, norm.y + 1, norm.z + 1) * .5
             # target = pos + norm + Vector.rand_in_unit_sphere()
@@ -121,20 +143,22 @@ class Camera(Transform):
             # target = pos + Vector.rand_in_hemisphere(norm)
             # return self.ray_color(Ray(pos, target-pos), scene, depth-1) * .5
             if material is not None:
-                scatter_result = material.scatter(ray, pos, norm, color)
+                scatter_result = material.scatter(ray, pos, norm, front_face)
+                emitted_result = material.emitted()
+
                 if scatter_result is not None:
                     scattered_ray, attenuation = scatter_result
                     r_c = self.ray_color(scattered_ray, scene, depth - 1)
-                    return Vector(r_c.x * attenuation.x, r_c.y * attenuation.y, r_c.z * attenuation.z)
+                    return emitted_result + Vector(r_c.x * attenuation.x, r_c.y * attenuation.y, r_c.z * attenuation.z)
                 else:
-                    return Vector.null()
+                    return emitted_result
             else:
                 # to show plain object color
                 return color
 
         unit_dir = ray.direction.normalize()
         t = .5 * (unit_dir.y + 1)
-        return Vector(1, 1, 1) * (1-t) + Vector(.5, .7, 1) * t
+        return self.background_gradient[0] * (1 - t) + self.background_gradient[1] * t
 
     def render(self, scene):
         i = Image(self.image_width, self.image_height)
@@ -198,37 +222,5 @@ class Scene:
                     result = result_obj
         return result
 
-
-# Engine part: Building scene/environment  for rendering (camera, spheres, etc.)
-scene = Scene("rendering8")
-# cameras
-main_camera = Camera(1, 16 / 9, 100, samples_per_pixel=16, max_bounce_depth=16)
-cam2 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=2)
-cam3 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=4)
-cam4 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=8)
-cam5 = Camera(1, 16 / 9, 1920, samples_per_pixel=2, max_bounce_depth=16)
-
-scene.add_cam(main_camera)
-# scene.add_cam(cam2)
-# scene.add_cam(cam3)
-# scene.add_cam(cam4)
-# scene.add_cam(cam5)
-
-# spheres
-s0 = Sphere(Vector(0, 0, -2), 1, Vector(1, 0, 0), SpecularMaterial(Vector(255 / 255, 215 / 255, 0 / 255), 0))
-s1 = Sphere(Vector(-1.8, -.2, -2), .8, Vector(1, 0, 0), SpecularMaterial(Vector(216 / 255, 216 / 255, 216 / 255), .3))
-s2 = Sphere(Vector(0, -101, -2), 100, Vector(0, 0, 1), DiffuseMaterial(Vector(105/255, 105/255, 105/255)))
-# s2 = Sphere(Vector(-1, 0, -10), 3, Vector(0, 0, 0))
-# s3 = Sphere(Vector(-2, 1, -2), .2, Vector(1, 0, 0))
-# s4 = Sphere(Vector(0, -1, -2), 1, Vector(0, 1, 0))
-
-scene.add_render_object(s0)
-scene.add_render_object(s1)
-scene.add_render_object(s2)
-# scene.add_object(s3)
-# scene.add_object(s4)
-
-# start rendering
-scene.render()
 
 

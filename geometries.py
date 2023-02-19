@@ -64,6 +64,11 @@ class Vector:
         # returns vector reflected on the normal
         return self - norm * (self * norm) * 2
 
+    def refract(self, norm, cos_theta, eta_ratio):
+        r_out_perp = (self + (norm * cos_theta)) * eta_ratio
+        r_out_parallel = norm * -np.sqrt(np.abs(1-(r_out_perp*r_out_perp)))
+        return r_out_perp + r_out_parallel
+
     # defining standard vectors: right-handed coordinate system, x right, y left, z backwards
     @staticmethod
     def up():
@@ -100,7 +105,16 @@ class Vector:
             v = Vector.rand(-1, 1)
             if v.length() >= 1:
                 continue
-            return v.normalize()
+            return v
+
+    @staticmethod
+    def rand_in_unit_disc():
+        # returns a random unit vector in unit disc
+        while True:
+            v = Vector(np.random.uniform(-1, 1), np.random.uniform(-1, 1), 0)
+            if v.length() >= 1:
+                continue
+            return v
 
     @staticmethod
     def rand_in_hemisphere(norm):
