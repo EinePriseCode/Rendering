@@ -1,6 +1,6 @@
-from geometries import Vector
-from materials import DiffuseMaterial, SpecularMaterial, Transmissive
-from objects import Scene, Camera, Sphere
+from base.geometries import Vector
+from base.materials import DiffuseMaterial, SpecularMaterial, Transmissive
+from base.objects import Scene, Camera, Sphere
 
 scene = Scene("../images/image7")
 # camera

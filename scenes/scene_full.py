@@ -1,6 +1,5 @@
-from geometries import Vector
-from materials import DiffuseMaterial
-from objects import Scene, Camera, Sphere
+from base.geometries import Vector
+from base.objects import Scene, Camera, Sphere
 
 # maybe the image is a bit wider, because of a different fov due to my own implementation
 scene = Scene("../images/image4")

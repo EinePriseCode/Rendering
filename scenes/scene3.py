@@ -1,5 +1,5 @@
-from geometries import Vector
-from objects import Scene, Camera, Sphere
+from base.geometries import Vector
+from base.objects import Scene, Camera, Sphere
 
 scene = Scene("../images/image3")
 # camera

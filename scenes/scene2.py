@@ -1,4 +1,4 @@
-from objects import Scene, Camera
+from base.objects import Scene, Camera
 
 # maybe the image is a bit wider, because of a different fov due to my own implementation
 scene = Scene("../images/image2")

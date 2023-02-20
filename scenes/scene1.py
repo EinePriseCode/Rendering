@@ -1,5 +1,5 @@
-from geometries import Vector
-from rendering import Image
+from base.geometries import Vector
+from base.rendering import Image
 
 ''' for a image of static color this code is easier than using 
     the camera model with complex features (e.g. gamma correction) '''

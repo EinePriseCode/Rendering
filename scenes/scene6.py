@@ -1,6 +1,6 @@
-from geometries import Vector
-from materials import DiffuseMaterial, SpecularMaterial
-from objects import Scene, Camera, Sphere
+from base.geometries import Vector
+from base.materials import DiffuseMaterial, SpecularMaterial
+from base.objects import Scene, Camera, Sphere
 
 scene = Scene("../images/image6")
 # camera
@@ -32,10 +32,10 @@ scene.add_render_object(s5)
 scene.add_render_object(s6)
 scene.add_render_object(s7)
 
-# scene.add_cam(cam0)
-scene.add_cam(cam1)
-scene.add_cam(cam2)
-scene.add_cam(cam3)
-scene.add_cam(cam4)
+scene.add_cam(cam0)
+# scene.add_cam(cam1)
+# scene.add_cam(cam2)
+# scene.add_cam(cam3)
+# scene.add_cam(cam4)
 
 scene.render()
