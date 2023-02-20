@@ -1,14 +1,11 @@
 from geometries import Vector
-from materials import DiffuseMaterial, SpecularMaterial, Transmissive
+from materials import DiffuseMaterial, SpecularMaterial, Transmissive, Emissive
 from objects import Scene, Camera, Sphere
 
-scene = Scene("../images/image7")
+scene = Scene("../images/image8")
 # camera
-cam0 = Camera(16 / 9, 1920, 1, max_bounce_depth=1, samples_per_pixel=64)
-cam1 = Camera(16 / 9, 1920, 1, max_bounce_depth=2, samples_per_pixel=64)
-cam2 = Camera(16 / 9, 1920, 1, max_bounce_depth=4, samples_per_pixel=64)
-cam3 = Camera(16 / 9, 1920, 1, max_bounce_depth=8, samples_per_pixel=64)
-cam4 = Camera(16 / 9, 1920, 1, max_bounce_depth=16, samples_per_pixel=64)
+cam0 = Camera(16 / 9, 1920, 1, max_bounce_depth=64, samples_per_pixel=64,
+              background_gradient=(Vector(0, 0, 0), Vector(0, 0, 0)))
 
 # spheres
 s0 = Sphere(Vector(0, -1, -13), 4, material=DiffuseMaterial(Vector(1, 0, 0)))
@@ -26,6 +23,9 @@ s8 = Sphere(Vector(0, -2, -3.8), 2.8, material=Transmissive(1.5))
 s9 = Sphere(Vector(0, -2, -3.8), 2.6, material=Transmissive(1.5))
 s10 = Sphere(Vector(-13, 3, -18), 8, material=Transmissive(1.5))
 
+s11 = Sphere(Vector(0, 0, -40), 20, material=Emissive(Vector(1, 1, 1), 1))
+s12 = Sphere(Vector(25, 8, -20), 5, material=Emissive(Vector(.95, .62, 0.09), 1))
+s13 = Sphere(Vector(1, -4.5, -7.3), .5, material=Emissive(Vector(1, 1, 1), 1))
 
 scene.add_render_object(s0)
 scene.add_render_object(s1)
@@ -41,10 +41,10 @@ scene.add_render_object(s8)
 scene.add_render_object(s9)
 scene.add_render_object(s10)
 
-# scene.add_cam(cam0)
-scene.add_cam(cam1)
-scene.add_cam(cam2)
-scene.add_cam(cam3)
-scene.add_cam(cam4)
+scene.add_render_object(s11)
+scene.add_render_object(s12)
+scene.add_render_object(s13)
+
+scene.add_cam(cam0)
 
 scene.render()
