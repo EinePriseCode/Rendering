@@ -23,8 +23,8 @@ s6 = Sphere(Vector(-3, -3, -7.8), 2, material=SpecularMaterial(Vector(.85, .85, 
 s7 = Sphere(Vector(4, -4, -4.9), 1, material=SpecularMaterial(Vector(.75, .54, .44), .5))
 
 s8 = Sphere(Vector(0, -2, -3.8), 2.8, material=Transmissive(1.5))
-s9 = Sphere(Vector(0, -2, -3.8), 2.6, material=Transmissive(1.5))
-s10 = Sphere(Vector(-13, 3, -18), 8, material=Transmissive(1.5))
+s9 = Sphere(Vector(0, -2, -3.8), -2.7, material=Transmissive(1.5))
+s10 = Sphere(Vector(-13, 3, -18), 8, material=Transmissive(1.325))
 
 scene.add_render_object(s0)
 scene.add_render_object(s1)
