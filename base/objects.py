@@ -136,12 +136,10 @@ class Camera(Transform):
         result = scene.hit(ray, self.t_min, self.t_max)
         if result is not None:
             _, pos, norm, front_face, color, material = result
+
             # to show normal vector as color
             # return Vector(norm.x + 1, norm.y + 1, norm.z + 1) * .5
-            # target = pos + norm + Vector.rand_in_unit_sphere()
-            # with older diffuse formulation
-            # target = pos + Vector.rand_in_hemisphere(norm)
-            # return self.ray_color(Ray(pos, target-pos), scene, depth-1) * .5
+
             if material is not None:
                 scatter_result = material.scatter(ray, pos, norm, front_face)
                 emitted_result = material.emitted()

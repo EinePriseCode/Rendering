@@ -19,7 +19,7 @@ class DiffuseMaterial(Material):
 
     # implementation of a diffuse material (inherits from Material)
     def scatter(self, ray, pos, norm, front_face):
-        # returns a new ray from hit position in random (scatterd) direction and color of material
+        # returns a new ray from hit position in random (scattered) direction and color of material
         scatter_dir = norm + Vector.rand_in_unit_sphere().normalize()
         if scatter_dir.near_zero():
             scatter_dir = norm
