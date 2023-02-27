@@ -25,9 +25,9 @@ scene.add_render_object(s3)
 scene.add_render_object(s4)
 
 scene.add_cam(cam0)
-# scene.add_cam(cam1)
-# scene.add_cam(cam2)
-# scene.add_cam(cam3)
-# scene.add_cam(cam4)
+scene.add_cam(cam1)
+scene.add_cam(cam2)
+scene.add_cam(cam3)
+scene.add_cam(cam4)
 
 scene.render()
