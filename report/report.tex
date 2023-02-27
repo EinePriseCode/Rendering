@@ -35,6 +35,11 @@
 	long = {Field of View}
 }
 
+\DeclareAcronym{ior}{
+	short = IOR,
+	long = {Index Of Reflection}
+}
+
 \graphicspath{{../images_report/}}
 
 \title{Ray-tracing based renderer from scratch in Python}
@@ -88,11 +93,7 @@ image.save_image("../images/image1.ppm")
 	\\
 	The main difference between this implementation and the approach in \cite{Shirley2020RTW1} is a design decision regarding the rendering loop and the sent out rays. To get such a ray, which can collide with objects later, the \emph{get\textunderscore ray(x, y, antialiasing)} method was implemented. While the tutorial uses the image plane coordinates for x and y, this implementation considers the pixel coordinates as \emph{x} and \emph{y} and transforms them into world space (image plane) coordinates in the method itself. This approach helps understanding, that for each image pixel one ray is generated. In case of antialiasing multiple rays for each pixel are sent out (\emph{antialiasing} parameter) as explained more detailed in \cref{sec:antialiasing}. \Cref{lst:getray} shows the code of the \emph{get\textunderscore ray(x, y, antialiasing)} method.
 	\\
-	The resulting image generated with \emph{scene2.py} is shown in \cref{fig:image2}. Because of the lag of backwards compatibility described in \cref{sec:intro} or - to be more precisely - due to personal favor, the \ac{fov} is slightly different in all rendered images. The default horizontal \ac{fov} is set to $130^{\circ}$ (representing human horizontal \ac{fov}), while the \ac{fov} $\phi$ in \cite{Shirley2020RTW1} results from focal length $fl=1$, viewport height $vp_h=2$ and aspect ratio $ar=\label{key}16/9$ as shown in \cref{eq:fov}.
-	\begin{equation}
-		\label{eq:fov}
-		\phi = 2\cdot arctan\left(\frac{vp_h\cdot ar}{2\cdot fl}\right) \approx 121,28^{\circ}
-	\end{equation}
+	The resulting image generated with \emph{scene2.py} is shown in \cref{fig:image2}. Because of the lag of backwards compatibility described in \cref{sec:intro} or - to be more precisely - due to personal favor, the \ac{fov} is slightly different in all rendered images (more details in \cref{sec:fov}). 
 
 	\begin{figure}[h]
 		\centering
@@ -155,7 +156,7 @@ scene.render()
 	\\
 	This random factors for \emph{x} and \emph{y} are calculated using \emph{NumPy’s random\textunderscore uniform(0, 1)} method, which returns a random value in the interval [0, 1). Without this offset the ray would go through the lower-left corner of each pixel in the image plane. This calculations are done in \cref{lst:getray}, all additional lines of code regarding lenses are explained in \cref{sec:depthoffield}.
 	\\
-	The color information of the intersections of those rays returned by \emph{ray\textunderscore color(ray, scene, depth)} method are summed up per pixel and later divided by the amount of samples per pixel (given to the constructor of an object of \emph{Camera} class by samples\textunderscore per\textunderscore pixel parameter). 
+	The color information of the intersections of those rays returned by \emph{ray\textunderscore color(ray, scene, depth)} method are summed up per pixel and later divided by the amount of samples per pixel (given to the constructor of an object of \emph{Camera} class by \emph{samples\textunderscore per\textunderscore pixel} parameter). 
 	\\
 	The \emph{clamp(min, max)} method implemented in the tutorial to clamp the colors between 0 and 255 (probably due to a C++ limitation or personal favor), is not used in this implementation, because all single colors are used to be between 0 and 1. The sum of all colors therefore can’t be negative nor bigger than $255\cdot  samples\textunderscore per\textunderscore pixel$. The transformation to RGB values between 0 and 255 is done in the \emph{write\textunderscore color(pixel\textunderscore color)} method together with gamma correction later on.
 	\\
@@ -224,14 +225,14 @@ class DiffuseMaterial(Material):
 		\begin{figure}[h]
 			\centering
 			\includegraphics[width=0.9\linewidth]{image5-5}
-			\caption{Scene of five spheres with diffuse material  (\emph{max\textunderscore bounce\textunderscore depth} of 16)}
+			\caption{Scene of five spheres with diffuse material (\emph{max\textunderscore bounce\textunderscore depth} of 16)}
 			\label{fig:image5}
 		\end{figure}
 		 
 		\subsection{Specular}
-		Specular material implemented in \emph{SpecularMaterial} class is similar to diffuse material. It also uses an albedo color for attenuation color. Main difference is the returned, scattered ray. On specular surfaces light is not randomly scattered but reflected. This is covered by law of reflection as described in lecture and tutorial and implemented in \emph{reflect(self, norm)} (static) function called on the direction vector of the ray with the normal vector as the function parameter.
+		Specular material implemented in \emph{SpecularMaterial} class is similar to diffuse material. It also uses an albedo color for attenuation color. Main difference is the returned, scattered ray. On specular surfaces light is not randomly scattered but reflected. This is covered by law of reflection as described in lecture and tutorial and implemented in \emph{reflect(self, norm)} method called on the direction vector of the ray with the normal vector as the function parameter.
 		
-		\begin{lstlisting}[caption={Function reflecting a vector on a normal vector}, language=Python, label=lst:reflect]
+		\begin{lstlisting}[caption={Method for reflecting a vector on a normal vector}, language=Python, label=lst:reflect]
 def reflect(self, norm):
 	return self - norm * (self * norm) * 2
 		\end{lstlisting}
@@ -241,7 +242,7 @@ def reflect(self, norm):
 		\begin{figure}[h]
 			\centering
 			\includegraphics[width=0.9\linewidth]{image6-5}
-			\caption{Scene of several spheres with diffuse and specular material  (\emph{max\textunderscore bounce\textunderscore depth} of 16)}
+			\caption{Scene of several spheres with diffuse and specular material (\emph{max\textunderscore bounce\textunderscore depth} of 16)}
 			\label{fig:image6}
 		\end{figure}
 	
@@ -249,15 +250,90 @@ def reflect(self, norm):
 		\label{sec:glossy}
 		In order to make a specular surface appear glossy a random offset is added to the direction of the reflected ray. This random offset is a vector within an unit sphere which is scaled by the so called \emph{fuzz} factor between 0 and 1. This factor is given to the material class by its constructor. This results in the default specular material for a \emph{fuzz} factor of 0 and more glossy specular materials for higher factors. If one of those scattered rays now do not point out of the sphere (no acute angle between normal and ray), the color black is returned (no light) and the recursion of \emph{ray\textunderscore color} is stopped.
 	
-		\subsection{Specular transmission}
+		\subsection{Specular transmissive}
+		For specular transmissive materials in addition to reflection the laws of refraction (Snell's law) must be taken into account for the calculation of the scattered rays direction and is therefore implemented as shown in \cref{lst:refract}. Basic concept is to use an \ac{ior} which is given to the constructor of the \emph{TransmissiveMaterial} class (no albedo color is used in this implementation). This \ac{ior} is a material specific constant and the reciprocal of the refraction ratio. With that information it's decided if reflection or refraction have to be used to determine the scattered ray's direction. In addition, as explained in the tutorial in \cite{Shirley2020RTW1} Schlick's approximation is applied to get more realistic results.
 		
+		\begin{lstlisting}[caption={Method for refracting a vector on a normal vector}, language=Python, label=lst:refract]
+def refract(self, norm, cos_theta, eta_ratio):
+	# cos_theta: already calculated cosinus of angle between vector and normal
+	# eta_ratio: refraction ratio
+	r_out_perp = (self + (norm * cos_theta)) * eta_ratio
+	r_out_parallel = norm * -np.sqrt(np.abs(1-(r_out_perp*r_out_perp)))
+	return r_out_perp + r_out_parallel			
+		\end{lstlisting}
+	
+		With specular transmissive materials for example a glass ball can be simulated. But also hollow glass balls can be rendered easily by putting one sphere of smaller and negative radius within another. Such an hollow object and an additional transmissive sphere are added to the scene shown in the last section resulting in \emph{scene7.py} module and the image in \cref{fig:image7}. Because the hollow glass sphere is directly in front of the camera some interesting effects can be observed. For example some reflections within the sphere and distortions of objects, which are visible through and next to the sphere.
 		
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=0.9\linewidth]{image7-5}
+			\caption{Scene of several spheres with diffuse, specular and specular transmissive material (\emph{max\textunderscore bounce\textunderscore depth} of 16)}
+			\label{fig:image7}
+		\end{figure}
+				   
 		\subsection{Emissive}
+		Finally, in this implementation emissive materials are the only materials overwriting \emph{Material} class's \emph{emit()} method and also do not implement any kind of scattering. Main idea based on \cite{Shirley2020RTW2} is, to use a light \emph{color} and an \emph{intensity} given to the constructor of \emph{EmissiveMaterial} class and return the \emph{color} scaled with the \emph{intensity} in the \emph{emit()} method. This causes static color and therefore an unrealistic appearance of an emissive object itself, but it's an easy and valid approach for physical lights giving good results .
+		\\
+		While emissive objects also influence scenes with global illumination, their effects are quite more visible if no background lightning is used. Therefore, the \emph{Camera} class is extended by adding the possibility to change the color (gradient) of the background. By setting it to black and placing three spheres with emissive materials of different \emph{color} and an \emph{intensity} in \emph{scene8.py} the image in \cref{fig:image8} can be rendered. In order to generate high quality results and realistic lighting in addition to \emph{samples\textunderscore per\textunderscore pixel} also \emph{max\textunderscore bounce\textunderscore depth} is set to 64.
+		
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=0.9\linewidth]{image8}
+			\caption{Scene of several spheres with diffuse, specular, specular transmissive and emissive material}
+			\label{fig:image8}
+		\end{figure}
+		
 	\section{Enhancing camera}
+		The \emph{Camera} class introduced in \cref{sec:camera} provides already good results, but in order to get more realistic renderings two additional aspects are implemented as described in the following three subsections.
+		
+		\subsection{\ac{fov}}
+		\label{sec:fov}
+			To this point vertical and horizontal \ac{fov} are indirectly defined by the viewport size and the focal length parameter of the camera as shown in the tutorial. By introducing a parameter for vertical \ac{fov} as in \cite{Shirley2020RTW1} or for horizontal \ac{fov} as in this implementation (due to personal favor; like in most video games) the viewport size results from \ac{fov} and focal length.
+			\\
+			It's important to mention that for all rendered images the default horizontal \ac{fov} is set to $130^{\circ}$ (representing human horizontal \ac{fov}), while the \ac{fov} $\phi$ in \cite{Shirley2020RTW1} results from focal length $fl=1$, viewport height $vp_h=2$ and aspect ratio $ar=\label{key}16/9$ as shown in \cref{eq:fov}.
+			
+			\begin{equation}
+				\label{eq:fov}
+				\phi = 2\cdot arctan\left(\frac{vp_h\cdot ar}{2\cdot fl}\right) \approx 121,28^{\circ}
+			\end{equation}
+		 
+			 Setting focal length always to one as in \cite{Shirley2020RTW1} is not a problem because all calculations are correctly implemented for this specific case, but for different focal length values wrong equations would be used to calculate the viewport. Therefore, if focal length as well as \ac{fov} are parameters of \emph{Camera} class, both values have to be used for correct viewport calculations with reordered \cref{eq:fov}. 
+			 \\
+			 Additionally, the trick for thin lens approximation explained in \cref{sec:depthoffield} is easier to implement, if focal length is used in all equations on default.
+			
 		\subsection{Positioning and orienting}
+			A main feature of real cameras is that they can be moved around and the camera's angle can be changed. In order to provide this feature also with \emph{Camera} class the approach from the tutorial is used
+			\\
+			A \emph{lookfrom} vector defining the camera's position, a \emph{lookat} vector defining the point in space the camera is looking to and a up vector defining the up direction in camera's own coordinate system are given to the constructor of \emph{Camera} class. Using those three vectors an orthonormal basis of camera specific coordinate system can be calculated using cross products. This coordinate system is now used instead of forward, right and up vectors in world space coordinates.
+			\\
+			By adding five more spheres to the current scene and changing camera's position and orientation in \emph{scene9.py} it's possible to render images from interesting perspectives as shown in \cref{fig:image9}.
+			
+			\begin{figure}[h]
+				\centering
+				\includegraphics[width=0.30\linewidth]{image9}
+				\includegraphics[width=0.30\linewidth]{image9-1}
+				\includegraphics[width=0.30\linewidth]{image9-2}
+				\caption{Scene of several spheres with various materials rendered from different perspectives}
+				\label{fig:image9}
+			\end{figure}			
+			
 		\subsection{Depth of field}
 		\label{sec:depthoffield}
-		\begin{lstlisting}[caption={Method to generate a ray for given pixel coordinates using antialisaing and thin lens approximation}, language=Python, label=lst:getray]
+			Another effect in real photography is depth of field. Due to lenses and apertures used in real cameras only objects in a limited range around a certain distance are perfectly sharp. While it's also an advantage of rendering to be able to generate globally sharp images, often depth of field is a desired effect. 
+			\\
+			In order to simulate it there are basically two different approaches of approximation:
+			
+			\begin{enumerate}
+				\item{\emph{Thick lens approximation}}
+				\item{\emph{Thin lens approximation}}  
+			\end{enumerate}
+			\emph{Thick lens approximation} is simulating a real lens of certain thickness (scaled up to complex structures of multiple lenses). 
+			\\
+			\emph{Thin lens approximation} used in this implementation inspired by \cite{Shirley2020RTW1} avoids those complex and intense calculations by simulating the lens with random offsets of camera center and a clever usage of focal length.
+			\\
+			Having a last closer look on \cref{lst:getray} shows the implementation of random offsets of the camera's center. All rays are not longer sent out only from the center but a random offset within an unit disc (radius equals to aperture radius) is added to the center position. Only objects which are located on the image plane will be rendered as before, others will be blurred. Finally, the last step of the \emph{Thin lens approximation} is to set focal length to the desired depth of field to grant the expected behavior.
+		
+			\begin{lstlisting}[caption={Method to generate a ray for given pixel coordinates using antialisaing and thin lens approximation}, language=Python, label=lst:getray]
 def get_ray(self, x, y, antialiasing):
 	# antialiasing offset
 	rand_offset_x, rand_offset_y = 0, 0
@@ -273,12 +349,11 @@ def get_ray(self, x, y, antialiasing):
 		+ self.horizontal * (x + rand_offset_x) / (self.image_width - 1) 
 		+ self.vertical * (y + rand_offset_y) / (self.image_height - 1) 
 		- self.position - position_offset)
-		\end{lstlisting}
+			\end{lstlisting}
 	
 	\section{Conclusion}
 	
 	\clearpage
-	\printbibheading
-	\printbibliography
+	\printbibliography[heading=bibintoc].
 		
 \end{document}

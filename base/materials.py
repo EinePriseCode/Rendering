@@ -44,7 +44,7 @@ class SpecularMaterial(Material):
         return None
 
 
-class Transmissive(Material):
+class TransmissiveMaterial(Material):
     def __init__(self, ior):
         self.ior = ior
 
@@ -59,7 +59,7 @@ class Transmissive(Material):
         if refraction_ratio * sin_theta > 1 or self.reflectance(cos_theta, refraction_ratio) > np.random.uniform(0, 1):
             scattered_dir = unit_direction.reflect(norm)
         else:
-            scattered_dir = unit_direction.refract(norm, cos_theta, refraction_ratio)
+                scattered_dir = unit_direction.refract(norm, cos_theta, refraction_ratio)
 
         return Ray(pos, scattered_dir), Vector(1, 1, 1)
 
@@ -71,7 +71,7 @@ class Transmissive(Material):
         return r0 + (1-r0) * (1-cosine)**5
 
 
-class Emissive(Material):
+class EmissiveMaterial(Material):
     def __init__(self, color, intensity):
         self.color = color
         self.intensity = intensity
