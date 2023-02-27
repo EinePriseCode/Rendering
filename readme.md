@@ -15,3 +15,5 @@ Start rendering a *sceneX* by following command (-m to run a Python module):
 python -m scenes.sceneX
 ```
 For custom usage the implementation of the base package may be different and must be adjusted.
+
+:warning: **WARNING**: Pulling the repository includes all rendered example images (*/images* itself has as size of 860mb)
