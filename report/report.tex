@@ -278,12 +278,12 @@ def refract(self, norm, cos_theta, eta_ratio):
 		\subsection{Emissive}
 		Finally, in this implementation emissive materials are the only materials overwriting \emph{Material} class's \emph{emit()} method and also do not implement any kind of scattering. Main idea based on the second tutorial in \cite{Shirley2020RTW2} is, to use a light \emph{color} and an \emph{intensity} given to the constructor of \emph{EmissiveMaterial} class and return the \emph{color} scaled with the \emph{intensity} in the \emph{emit()} method. This causes static color and therefore an unrealistic appearance of an emissive object itself, but it's an easy and valid approach for physical lights giving good results .
 		\\
-		While emissive objects also influence scenes with environment mapping, their effects are quite more visible if no background lightning is used. Therefore, the \emph{Camera} class is extended by adding the possibility to change the color (gradient) of the background. By setting it to black and placing three spheres with emissive materials of different \emph{color} and an \emph{intensity} in \emph{scene8.py} the image in \cref{fig:image8} can be rendered. In order to generate high quality results and realistic lighting in addition to \emph{samples\textunderscore per\textunderscore pixel} also \emph{max\textunderscore bounce\textunderscore depth} is set to 64.
+		While emissive objects also influence scenes with environment illumination, their effects are quite more visible if no background lightning is used. Therefore, the \emph{Camera} class is extended by adding the possibility to change the color (gradient) of the background. By setting it to black and placing three spheres with emissive materials of different \emph{color} and an \emph{intensity} in \emph{scene8.py} the image in \cref{fig:image8} can be rendered. In order to generate high quality results and realistic lighting in addition to \emph{samples\textunderscore per\textunderscore pixel} also \emph{max\textunderscore bounce\textunderscore depth} is set to 64.
 		
 		\begin{figure}[h]
 			\centering
 			\includegraphics[width=0.9\linewidth]{image8}
-			\caption{Scene of several spheres with diffuse, specular, specular transmissive and emissive material without environment mapping}
+			\caption{Scene of several spheres with diffuse, specular, specular transmissive and emissive material without environment illumination}
 			\label{fig:image8}
 		\end{figure}
 		
